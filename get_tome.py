@@ -34,12 +34,13 @@ def get_pages_data(url: str):
     pages_data = requests.get(url)
     return pages_data.json()['pages']
 
-print(get_pages_data('https://zenko-api.onrender.com/chapters/23397'))
+pages_data = get_pages_data('https://zenko-api.onrender.com/chapters/23397')
+print('Got image data')
 
-# print('Starting...')
-# images = save_images()
-# print('Saving to pdf...')
-# save_to_pdf('lookback.pdf', images)
-# print('Done')
+print('Starting...')
+images = save_images(pages_data)
+print('Saving to pdf...')
+save_to_pdf('lookback.pdf', images)
+print('Done')
 
 # images_data.sort(lambda image_data: image_data['id'])
