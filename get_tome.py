@@ -44,7 +44,7 @@ def download_zenko_chapter(chapter_id: str):
     images = []
     for page in pages_data:
         images.append(write_zenko_data(page['imgUrl']))
-    save_to_pdf(f'{chapter['name']}.pdf', images)
+    save_to_pdf(f"{chapter['name']}.pdf", images)
     remove_temp_images(images)
 
 def download_zenko_title(title: str):
