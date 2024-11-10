@@ -25,7 +25,7 @@ def save_to_pdf(filename, image_files: list[str]):
     images[0].save(
         pdf_path, "PDF", resolution=100.0, save_all=True, append_images=images[1:]
     )
-    print(filename)
+    return filename
 
 
 def remove_temp_images(images: list[str]):
@@ -49,16 +49,19 @@ def download_zenko_chapter(chapter_id: str):
     images = []
     for page in pages_data:
         images.append(write_zenko_data(page["imgUrl"]))
-    save_to_pdf(f"{chapter['name']}.pdf", images)
+    result = save_to_pdf(f"{chapter['name']}.pdf", images)
     remove_temp_images(images)
+    return result
 
 
 def download_zenko_title(title: str):
     chapters = get_chapters_data(
         f"https://zenko-api.onrender.com/titles/{title}/chapters"
     )
+    result = []
     for chapter in chapters:
-        download_zenko_chapter(chapter["id"])
+        result.append(download_zenko_chapter(chapter["id"]))
+    return result
 
 
 def download_zenko_manga(manga_url: str):
@@ -72,9 +75,9 @@ def download_zenko_manga(manga_url: str):
     title = match.group("title")
     try:
         chapter = match.group("chapter")[1:]
-        download_zenko_chapter(chapter)
+        return [download_zenko_chapter(chapter)]
     except Exception:
-        download_zenko_title(title)
+        return download_zenko_title(title)
 
 
 # manga in ua
@@ -97,8 +100,18 @@ def get_manga_in_ua_pdf(chapter_url: str, manga_name: str):
         pages.append(write_image_data(page_id, page_url))
     file_name = manga_name + ".pdf"
 
-    save_to_pdf(file_name, pages)
+    result = save_to_pdf(file_name, pages)
     remove_temp_images(pages)
+    return [result]
+
+
+def get_manga_in_ua_hash():
+    home_page = requests.get("https://manga.in.ua").text
+    login_hash = r".*site_login_hash = \'(?P<login_hash>.+)\'.*"
+    match = re.search(login_hash, home_page)
+    if not match:
+        return False
+    return match.group("login_hash")
 
 
 def download_manga_in_ua(manga_url: str):
@@ -115,36 +128,79 @@ def download_manga_in_ua(manga_url: str):
     if not match:
         return False
     chapter_id = match.group("chapter")
-    user_hash = "3dc43ae45a8750d1cae8bc7f56386a1a8578517c"
+    user_hash = get_manga_in_ua_hash()
+    if not user_hash:
+        return False
     chapter_url = (
         f"{BASE_CHAPTER_URI}&news_id={chapter_id}&action=show&user_hash={user_hash}"
     )
     manga_name = match.group("manga_name")
 
-    get_manga_in_ua_pdf(chapter_url, manga_name)
+    return get_manga_in_ua_pdf(chapter_url, manga_name)
 
 
-def download_mangadex(manga_url: str):
+def get_chapters_mangadex(manga_url: str):
     mangadex_pattern = r"(https://)?mangadex\.org/chapter/(?P<chapter_id>.+)*"
     match = re.search(mangadex_pattern, manga_url)
-    print(match)
     if not match:
         return False
     chapter_id = match.group("chapter_id")
-    [scanlation_group, manga_id] = mangadex_helper.get_scanlation_group(chapter_id)
+    [scanlation_group, translated_language, manga_id] = (
+        mangadex_helper.get_scanlation_group(chapter_id)
+    )
 
-    chapters = mangadex_helper.get_chapters_ids(manga_id, scanlation_group)
-    print(chapters)
-    for index, chapter in enumerate(chapters):
+    chapters = mangadex_helper.get_chapters_ids(
+        manga_id, scanlation_group, translated_language
+    )
+    return chapters
+
+
+def download_mangadex(manga_url: str):
+    chapters = get_chapters_mangadex(manga_url)
+    if not chapters:
+        return False
+    for index, chapter_data in enumerate(chapters):
         [baseUrl, chapter_pages, chapter_title] = mangadex_helper.get_pages(
-            chapter["id"]
+            chapter_data["chapter_id"]
         )
-        print(baseUrl)
         pages = []
         for chapter_page in chapter_pages:
             pages.append(write_image_data(chapter_page, f"{baseUrl}/{chapter_page}"))
-        save_to_pdf(f"{index+1}-{chapter_title}.pdf", pages)
+        save_to_pdf(f"{index}-{chapter_title}.pdf", pages)
         remove_temp_images(pages)
+
+
+def download_mangadex_single(manga_url: str):
+    [baseUrl, chapter_pages, chapter_title, volume] = mangadex_helper.get_pages_by_url(
+        manga_url
+    )
+    pages = []
+    for chapter_page in chapter_pages:
+        pages.append(write_image_data(chapter_page, f"{baseUrl}/{chapter_page}"))
+    save_to_pdf(f"{volume}-{chapter_title}.pdf", pages)
+    remove_temp_images(pages)
+    return f"{volume}-{chapter_title}.pdf"
+
+
+def download_mangadex_chapter(chapter_id: str):
+    [baseUrl, chapter_pages, chapter_title] = mangadex_helper.get_pages(chapter_id)
+    pages = []
+    for chapter_page in chapter_pages:
+        pages.append(write_image_data(chapter_page, f"{baseUrl}/{chapter_page}"))
+    pdf_name = f"{chapter_title}.pdf"
+    save_to_pdf(pdf_name, pages)
+    remove_temp_images(pages)
+    return pdf_name
+
+
+def download_manga(manga_url: str):
+    zenko_manga = download_zenko_manga(manga_url)
+    if zenko_manga:
+        return zenko_manga
+    miu_manga = download_manga_in_ua(manga_url)
+    if miu_manga:
+        return miu_manga
+    return download_mangadex(manga_url)
 
 
 if __name__ == "__main__":
@@ -156,6 +212,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    if not download_zenko_manga(args.manga_url):
-        if not download_manga_in_ua(args.manga_url):
-            download_mangadex(args.manga_url)
+    download_manga(args.manga_url)

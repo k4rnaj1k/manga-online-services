@@ -1,24 +1,17 @@
+import json
 from os import getenv
 import time
 import stomp
 import signal
 import sys
-
-
-# Listener class to handle incoming messages and errors
-class MyListener(stomp.ConnectionListener):
-    def on_error(self, frame):
-        print(f"Received an error: {frame.body}")
-
-    def on_message(self, frame):
-        print(f"Received a message: {frame.body}")
+import get_tome
 
 
 # Define connection parameters
 stomp_server = getenv("BROKER_HOST", default="localhost")
 stomp_port = getenv("BROKER_PORT", default=61613)
-username = getenv("BROKER_USERNAME", default="admin")
-password = getenv("BROKER_PASSWORD", default="admin")
+username = getenv("BROKER_USERNAME", default="")
+password = getenv("BROKER_PASSWORD", default="")
 
 # Create connection object
 conn = None
@@ -27,11 +20,49 @@ conn = None
 def connect_and_subscribe():
     global conn
     conn = stomp.Connection([(stomp_server, stomp_port)])
-    conn.set_listener("", MyListener())
+    conn.set_listener("", MyListener(conn))
     conn.connect(username, password, wait=True)
-    conn.subscribe(destination="/queue/manga", id=1, ack="auto")
+    conn.subscribe(destination="/queue/tome_list", id=1, ack="auto")
+    conn.subscribe(destination="/queue/download", id=1, ack="auto")
+    print("Connected to the STOMP server and subscribed to /queue/tome_list")
 
-    print("Connected to the STOMP server and subscribed to /queue/manga")
+
+# Listener class to handle incoming messages and errors
+class MyListener(stomp.ConnectionListener):
+    def __init__(self, conn: stomp.Connection):
+        self.conn = conn
+
+    def on_error(self, frame):
+        print(f"Received an error: {frame.body}")
+
+    def on_message(self, frame):
+        print(f"Received a message: {frame.body}")
+
+        if frame.headers.get("destination") == "/queue/tome_list":
+            result_data = get_tome.get_chapters_mangadex(frame.body)
+            if not result_data:
+                return
+            print(result_data)
+            self.conn.send(
+                "/queue/tome_list_result",
+                body=json.dumps(result_data),
+                headers={"content-type": "text/plain", "request": frame.body},
+            )
+        print(frame.headers.get("destination"))
+        if frame.headers.get("destination") == "/queue/download":
+            print("downloading")
+            # result_data = get_tome.download_manga(frame.body)
+            result_data = get_tome.download_mangadex_single(frame.body)
+            print(result_data)
+            if not result_data:
+                return
+            self.conn.send(
+                "/queue/download_result",
+                body=json.dumps(result_data),
+                headers={"request": frame.body},
+            )
+        else:
+            print("wtf not downloading")
 
 
 # Function to gracefully handle container shutdown
@@ -62,4 +93,3 @@ while True:
     except Exception as e:
         print(f"Error occurred: {e}, reconnecting...")
         time.sleep(5)  # Wait a bit before trying to reconnect
-
