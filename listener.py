@@ -4,7 +4,6 @@ import time
 import stomp
 import signal
 import sys
-import get_tome
 
 
 # Define connection parameters
@@ -42,7 +41,6 @@ class MyListener(stomp.ConnectionListener):
             result_data = get_tome.get_chapters_mangadex(frame.body)
             if not result_data:
                 return
-            print(result_data)
             self.conn.send(
                 "/queue/tome_list_result",
                 body=json.dumps(result_data),

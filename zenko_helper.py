@@ -1,27 +1,30 @@
 import requests
-import get_tome
+from downloader_types import MangaDownloader
+import re
 
 ZENKO_API_URL = "https://zenko-api.onrender.com"
 ZENKO_PROXY_URL = "https://zenko.online/api/proxy?url=https://zenko.b-cdn.net"
 
+# chapters = requests.get(f"{ZENKO_API_URL}/titles/{title}/chapters").json()
 
-def download_zenko_chapter(chapter_id: str):
-    chapter = requests.get(f"{ZENKO_API_URL}/chapters/{chapter_id}").json()
-    pages_data = chapter["pages"]
-    images = []
-    for page in pages_data:
-        imgId = page["imgUrl"]
-        imgUrl = f"{ZENKO_PROXY_URL}/{imgId}?optimizer=image&width=auto&quality=70&height=auto"
-        images.append(get_tome.write_image_data(imgId, imgUrl))
-    result = get_tome.save_to_pdf(f"{chapter['name']}.pdf", images)
-    get_tome.remove_temp_images(images)
-    return result
+class ZenkoDownloader(MangaDownloader):
+    pattern = r"(https://)?zenko\.online/titles/(?P<title>\d+)/?(?P<chapter>(\d+)?).*"
+    match = False
+    def is_chapter_match(self, url: str):
+        self.match = re.search(self.pattern, url)
+        if not self.match:
+            return False
+        return True
 
+    def get_chapter_image_urls(self, url: str):
+        chapter = requests.get(f"https://zenko-api.onrender.com/chapters/{self.match.group('chapter')}").json()
+        pages_data = chapter["pages"]
+        images = []
+        for page in pages_data:
+            imgId = page["imgUrl"]
+            images.append(f"https://zenko.online/api/proxy?url=https://zenko.b-cdn.net/{imgId}?optimizer=image&width=auto&quality=70&height=auto")
+        return images
 
-def download_zenko_title(title: str):
-    chapters = requests.get(f"{ZENKO_API_URL}/titles/{title}/chapters").json()
-
-    result = []
-    for chapter in chapters:
-        result.append(download_zenko_chapter(chapter["id"]))
-    return result
+    def get_chapter_name(self, url: str):
+        chapter = requests.get(f"https://zenko-api.onrender.com/chapters/{self.match.group('chapter')}").json()
+        return chapter['name'].replace('@#%&;№%#&**#!@', ' Том Розділ ')
