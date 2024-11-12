@@ -5,8 +5,11 @@ from downloader_types import MangaDownloader
 
 API_URL = "https://api.mangadex.org"
 
-def format_chapter_uri(chapter_id: str):
+def format_pages_uri(chapter_id: str):
     return f"{API_URL}/at-home/server/{chapter_id}?forcePort443=false"
+
+def format_chapter_uri(chapter_id: str):
+    return f"https://mangadex.org/chapter/{chapter_id}"
 
 def get_volumes_data(manga_id: str, scanlation_group: str, translated_language: str):
     aggregate_url = f"{API_URL}/manga/{manga_id}/aggregate"
@@ -20,7 +23,10 @@ def get_chapters_uris(manga_id: str, scanlation_group: str, translated_language:
     result_chapters = []
     for volume in volumes_data.values():
         for chapter in volume["chapters"].values():
-            result_chapters.append(format_chapter_uri(chapter['id']))
+            result_chapters.append({'chapter_id': chapter['id'],
+                                    'chapter_url': format_chapter_uri(chapter['id']),
+                                    'volume': volume['volume'],
+                                    'chapter': chapter['chapter']})
     result_chapters.reverse()
     return result_chapters
 
@@ -44,7 +50,7 @@ def extract_chapter_id(url: str):
 
 def get_pages_by_url(pages_url: str):
     chapter_id = extract_chapter_id(pages_url)
-    pages_url = format_chapter_uri(chapter_id)
+    pages_url = format_pages_uri(chapter_id)
     pages_data = requests.get(pages_url).json()
     pages_urls = []
     for page_url in pages_data["chapter"]["data"]:

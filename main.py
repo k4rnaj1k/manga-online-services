@@ -20,7 +20,7 @@ def get_manga_pdf(chapter_url: str, helper: MangaDownloader):
     result = save_to_pdf(file_name, pages)
     print('Saved to pdf... Removing the temp images...')
     remove_temp_images(pages)
-    return [result]
+    return result
 
 helpers = [MangadexDownloader(), MangaInUADownloader(), ZenkoDownloader()]
 

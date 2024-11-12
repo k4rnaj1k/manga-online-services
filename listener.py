@@ -4,7 +4,10 @@ import time
 import stomp
 import signal
 import sys
-
+from mangadex_helper import MangadexDownloader
+from zenko_helper import ZenkoDownloader
+from manga_in_ua_helper import MangaInUADownloader
+from main import get_manga_pdf
 
 # Define connection parameters
 stomp_server = getenv("BROKER_HOST", default="localhost")
@@ -25,6 +28,9 @@ def connect_and_subscribe():
     conn.subscribe(destination="/queue/download", id=1, ack="auto")
     print("Connected to the STOMP server and subscribed to /queue/tome_list")
 
+mangadex_downloader = MangadexDownloader()
+manga_in_ua_downloader = MangaInUADownloader()
+zenko_downloader = ZenkoDownloader()
 
 # Listener class to handle incoming messages and errors
 class MyListener(stomp.ConnectionListener):
@@ -34,31 +40,31 @@ class MyListener(stomp.ConnectionListener):
     def on_error(self, frame):
         print(f"Received an error: {frame.body}")
 
+    def send_manga_result(self, result_data: str | list, request: str):
+        queue="download_result"
+        if type(result_data) == list:
+            queue="tome_list_result"
+        self.conn.send(
+                queue,
+                body=json.dumps(result_data),
+                headers={"request": request},
+            )
+
     def on_message(self, frame):
         print(f"Received a message: {frame.body}")
 
         if frame.headers.get("destination") == "/queue/tome_list":
-            result_data = get_tome.get_chapters_mangadex(frame.body)
-            if not result_data:
-                return
-            self.conn.send(
-                "/queue/tome_list_result",
-                body=json.dumps(result_data),
-                headers={"content-type": "text/plain", "request": frame.body},
-            )
-        print(frame.headers.get("destination"))
+            if(zenko_downloader.is_chapter_match(frame.body)):
+                self.send_manga_result(get_manga_pdf(frame.body, zenko_downloader), frame.body)
+            if(manga_in_ua_downloader.is_chapter_match(frame.body)):
+                self.send_manga_result(get_manga_pdf(frame.body, manga_in_ua_downloader), frame.body)
+            elif(mangadex_downloader.is_chapter_match(frame.body)):
+                self.send_manga_result(mangadex_downloader.get_chapters_urls(), frame.body)
         if frame.headers.get("destination") == "/queue/download":
-            print("downloading")
             # result_data = get_tome.download_manga(frame.body)
-            result_data = get_tome.download_mangadex_single(frame.body)
-            print(result_data)
-            if not result_data:
-                return
-            self.conn.send(
-                "/queue/download_result",
-                body=json.dumps(result_data),
-                headers={"request": frame.body},
-            )
+            if(mangadex_downloader.is_chapter_match(frame.body)):
+                self.send_manga_result(get_manga_pdf(frame.body, mangadex_downloader), frame.body)
+            
         else:
             print("wtf not downloading")
 
