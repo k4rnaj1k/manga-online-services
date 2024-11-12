@@ -38,5 +38,5 @@ class MangaInUADownloader(MangaDownloader):
         chapter_url = f"{BASE_CHAPTER_URI}&news_id={chapter_id}&action=show&user_hash={user_hash}"
         return get_chapter_image_urls(chapter_url)
     
-    def get_chapter_name(self):
+    def get_chapter_name(self, url: str):
         return self.match.group('manga_name')
