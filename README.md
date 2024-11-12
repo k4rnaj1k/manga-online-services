@@ -21,7 +21,7 @@ python main.py <your chapter url here>
   
   ```sh
   # python -m venv .
-  pip install BeatifulSoup4 requests Pillow stomp.py
+  pip install BeautifulSoup4 requests Pillow stomp.py
   ```
 
 </details>
