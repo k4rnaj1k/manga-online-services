@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    container_name: manga_downloader_activemq
+    environment:
+      BROKER_HOST: ${BROKER_HOST:-broker}         # Defaults to "broker" which is the service name
+      BROKER_PORT: ${BROKER_PORT:-61613}           # Defaults to 61613, the STOMP port
+      BROKER_USERNAME: ${BROKER_USERNAME:-}        # Optional; defaults to an empty string
+      BROKER_PASSWORD: ${BROKER_PASSWORD:-}        # Optional; defaults to an empty string
