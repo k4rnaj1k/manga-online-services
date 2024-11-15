@@ -25,6 +25,8 @@ def save_to_pdf(filename, image_files: list[str]):
     images[0].save(
         pdf_path, "PDF", resolution=100.0, save_all=True, append_images=images[1:]
     )
+    for image in images:
+        image.close()
     return filename
 
 def remove_temp_images(images: list[str]):
