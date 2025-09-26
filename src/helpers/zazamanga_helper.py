@@ -20,7 +20,7 @@ def get_comic_id(page: str):
     return match.group('comic_id')
 
 class ZazaManga(MangaDownloader):
-    pattern = r"(https://)?www.zazamanga.com/manga/(?P<manga_name>.+)/chapter-(?P<chapter>\d+)"
+    pattern = r"(https://)?www.zazamanga.com/manga/(?P<manga_name>.+)/chapter-(?P<chapter>.*)"
     match = False
     comic_id = ''
     def is_chapter_match(self, url: str):
@@ -35,7 +35,6 @@ class ZazaManga(MangaDownloader):
     def get_chapter_image_urls(self, chapter_url: str):
         page_data = requests.get(chapter_url).text
         self.comic_id=get_comic_id(page_data)
-        print(self.comic_id)
         return get_chapter_image_urls(page_data)
     
     def get_chapters_urls(self):

@@ -10,15 +10,14 @@ from helpers.zazamanga_helper import ZazaManga
 def get_manga_pdf(chapter_url: str, helper: MangaDownloader):
     #TODO: better error handling
     pages_urls = helper.get_chapter_image_urls(chapter_url)
-    print('Starting download of the given chapter...')
-    print('Downloading pages...')
+    print('Starting download of the given chapter...', end="\r", flush=True)
     pages = []
-    for page_url in pages_urls:
+    for index,page_url in enumerate(pages_urls):
+        print(f'{index + 1}/{len(pages_urls)} downloaded', end="\r", flush=True)
         pages.append(write_image_data(page_url, helper.get_headers()))
-    print('All pages downloaded...')
     file_name = helper.get_chapter_name(chapter_url) + ".pdf"
     result = save_to_pdf(file_name, pages)
-    print('Saved to pdf... Removing the temp images...')
+    print(f'\nSaved to pdf... {file_name} Removing the temp images...')
     remove_temp_images(pages)
     return result
 
@@ -51,5 +50,6 @@ if __name__ == "__main__":
                 helper.get_chapter_image_urls(args.manga_url)
                 chapters = helper.get_chapters_urls()
                 for index, chapter in enumerate(chapters):
-                    print('downloading chapter ' + str(index) + ' of ' + str(chapters.__len__()))
+                    print('downloading chapter ' + str(index + 1) + ' of ' + str(chapters.__len__()))
+                    helper.is_chapter_match(chapter['chapter_url'])
                     get_manga_pdf(chapter['chapter_url'], helper)
