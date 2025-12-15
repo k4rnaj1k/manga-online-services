@@ -1,7 +1,7 @@
 # **M**anga **O**nline **S**ervice**s**
 
 <p align="center">
-  <img alt="Service's mascot, hope repo will not go down because of it lmao" src="moss_image.webp" />
+  <img alt="Service's mascot, hope repo will not go down because of it lmao" src="img/moss_image.webp" />
 </p>
 
 > Moss, get it? :D
