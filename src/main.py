@@ -1,6 +1,6 @@
 from downloader_types import MangaDownloader
 import uuid
-from src.utils.pdf_helper import write_image_data, save_to_pdf, remove_temp_images
+from utils.pdf_helper import write_image_data, save_to_pdf, remove_temp_images
 import argparse
 from helpers.zenko_helper import ZenkoDownloader
 from helpers.manga_in_ua_helper import MangaInUADownloader

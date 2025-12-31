@@ -3,4 +3,5 @@ RUN mkdir /app
 WORKDIR /app
 COPY . .
 RUN pip install Pillow BeautifulSoup4 requests stomp.py
-CMD python src/listener.py
+WORKDIR /app/src
+CMD python listener.py
