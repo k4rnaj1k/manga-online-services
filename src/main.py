@@ -49,6 +49,7 @@ if __name__ == "__main__":
             if(helper.is_chapter_match(args.manga_url)):
                 helper.get_chapter_image_urls(args.manga_url)
                 chapters = helper.get_chapters_urls()
+                print(chapters)
                 for index, chapter in enumerate(chapters):
                     print('downloading chapter ' + str(index + 1) + ' of ' + str(chapters.__len__()))
                     helper.is_chapter_match(chapter['chapter_url'])

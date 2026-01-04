@@ -52,18 +52,21 @@ class MyListener(stomp.ConnectionListener):
 
     def on_message(self, frame):
         print(f"Received a message: {frame.body}")
+        print(f"Destination: {frame.headers.get('destination')}")
 
         if frame.headers.get("destination") == "/queue/tome_list":
             if(zenko_downloader.is_chapter_match(frame.body)):
                 self.send_manga_result(get_manga_pdf(frame.body, zenko_downloader), frame.body)
             if(manga_in_ua_downloader.is_chapter_match(frame.body)):
-                self.send_manga_result(get_manga_pdf(frame.body, manga_in_ua_downloader), frame.body)
+                self.send_manga_result(manga_in_ua_downloader.get_chapters_urls(), frame.body)
             elif(mangadex_downloader.is_chapter_match(frame.body)):
                 self.send_manga_result(mangadex_downloader.get_chapters_urls(), frame.body)
         if frame.headers.get("destination") == "/queue/download":
             # result_data = get_tome.download_manga(frame.body)
             if(mangadex_downloader.is_chapter_match(frame.body)):
                 self.send_manga_result(get_manga_pdf(frame.body, mangadex_downloader), frame.body)
+            if(manga_in_ua_downloader.is_chapter_match(frame.body)):
+                self.send_manga_result(get_manga_pdf(frame.body, manga_in_ua_downloader), frame.body)
             
         else:
             print("wtf not downloading")
